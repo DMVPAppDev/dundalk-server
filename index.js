@@ -72,7 +72,8 @@ app.get("/api/events", async (req, res) => {
     const radius = req.query.radius_km || 10;
     const limit = parseInt(req.query.limit) || 10;
 
-    const url = `https://www.eventbriteapi.com/v3/events/search/?location.latitude=${lat}&location.longitude=${lng}&location.within=${radius}km&expand=venue,logo&page=1`;
+    const url = `https://www.eventbriteapi.com/v3/events/search?location.latitude=${lat}&location.longitude=${lng}&location.within=${radius}km&page=1`;
+
 
     const response = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}` }
