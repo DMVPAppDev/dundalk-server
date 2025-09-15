@@ -47,11 +47,12 @@ app.get("/api/venues", async (req, res) => {
       return res.status(400).json({ status: "error", message: "lat and lng required" });
     }
 
-    const url = new URL("https://api.foursquare.com/v3/places/nearby");
+    const url = new URL("https://api.foursquare.com/v3/places/search");
     url.searchParams.append("ll", `${lat},${lng}`);
     if (radius_m) url.searchParams.append("radius", radius_m);
     if (query) url.searchParams.append("query", query);
     if (limit) url.searchParams.append("limit", limit);
+
 
     console.log("🔍 Fetching from Foursquare:", url.toString());
 
