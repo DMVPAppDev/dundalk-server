@@ -1,15 +1,12 @@
 {
   "name": "dundalk-server",
   "version": "1.0.0",
-  "description": "Backend for Dundalk MVP",
+  "description": "Backend server for Dundalk app",
   "main": "index.js",
-  "type": "commonjs",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "rss-parser": "^3.13.0"
+    "express": "^4.19.2"
   }
 }
