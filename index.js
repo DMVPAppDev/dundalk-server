@@ -1,5 +1,6 @@
 const express = require("express");
 const Parser = require("rss-parser");
+const axios = require("axios");
 const app = express();
 
 const parser = new Parser();
@@ -46,7 +47,6 @@ app.get("/api/news", async (req, res) => {
       allItems = allItems.concat(items);
     }
 
-    // Sort by date (newest first)
     allItems.sort((a, b) => new Date(b.pub_date) - new Date(a.pub_date));
 
     res.json({
@@ -56,6 +56,50 @@ app.get("/api/news", async (req, res) => {
   } catch (error) {
     console.error("Error fetching RSS feed:", error);
     res.status(500).json({ status: "error", message: "Failed to fetch RSS feed" });
+  }
+});
+
+// Events endpoint
+app.get("/api/events", async (req, res) => {
+  try {
+    const token = process.env.EVENTBRITE_TOKEN;
+    if (!token) {
+      return res.status(500).json({ status: "error", message: "No EVENTBRITE_TOKEN configured" });
+    }
+
+    const lat = req.query.lat || 53.9999772; // Dundalk center
+    const lng = req.query.lng || -6.4037354;
+    const radius = req.query.radius_km || 10;
+    const limit = req.query.limit || 10;
+
+    const url = `https://www.eventbriteapi.com/v3/events/search/?location.latitude=${lat}&location.longitude=${lng}&location.within=${radius}km&expand=venue&expand=logo&page_size=${limit}`;
+
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const events = response.data.events.map(ev => ({
+      id: `eventbrite_${ev.id}`,
+      title: ev.name?.text || "Untitled Event",
+      description: ev.description?.text || "",
+      start_time: ev.start?.utc || null,
+      end_time: ev.end?.utc || null,
+      venue_name: ev.venue?.name || null,
+      venue_lat: ev.venue?.address?.latitude || null,
+      venue_lng: ev.venue?.address?.longitude || null,
+      venue_address: ev.venue?.address?.localized_address_display || null,
+      is_free: ev.is_free || false,
+      tickets_url: ev.url || null,
+      image_url: ev.logo?.url || null
+    }));
+
+    res.json({
+      status: "ok",
+      data: events
+    });
+  } catch (error) {
+    console.error("Error fetching Eventbrite events:", error.response?.data || error.message);
+    res.status(500).json({ status: "error", message: "Failed to fetch Eventbrite events" });
   }
 });
 
