@@ -7,67 +7,44 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Root endpoint
 app.get("/", (req, res) => {
   res.send("Hello Dundalk — your Render server is running!");
 });
 
-// ✅ Test endpoint
 app.get("/api/test", (req, res) => {
   res.json({ status: "ok", message: "API is working" });
 });
 
-// ✅ Static events fallback
+// Events fallback
 app.get("/api/events", (req, res) => {
   res.json({
     status: "ok",
     events: [
-      {
-        id: "1",
-        name: "Dundalk Farmers Market",
-        date: "2025-09-20",
-        location: "Market Square, Dundalk",
-      },
-      {
-        id: "2",
-        name: "Traditional Irish Music Night",
-        date: "2025-09-21",
-        location: "The Spirit Store, Dundalk",
-      },
+      { id: "1", name: "Dundalk Farmers Market", date: "2025-09-20", location: "Market Square" },
+      { id: "2", name: "Irish Music Night", date: "2025-09-21", location: "The Spirit Store" },
     ],
   });
 });
 
-// ✅ Static news fallback
+// News fallback
 app.get("/api/news", (req, res) => {
   res.json({
     status: "ok",
     news: [
-      {
-        id: "1",
-        headline: "Local Dundalk school wins national award",
-        date: "2025-09-10",
-      },
-      {
-        id: "2",
-        headline: "Town prepares for annual music festival",
-        date: "2025-09-12",
-      },
+      { id: "1", headline: "Local school wins award", date: "2025-09-10" },
+      { id: "2", headline: "Town prepares for festival", date: "2025-09-12" },
     ],
   });
 });
 
-// ✅ Live Foursquare Venues (using Places v3 /nearby endpoint)
+// Venues (debug version)
 app.get("/api/venues", async (req, res) => {
   try {
     const { lat, lng, radius_m, query, limit } = req.query;
     const token = process.env.FOURSQUARE_API_KEY;
 
     if (!lat || !lng) {
-      return res.status(400).json({
-        status: "error",
-        message: "lat and lng query parameters are required",
-      });
+      return res.status(400).json({ status: "error", message: "lat and lng required" });
     }
 
     const url = new URL("https://api.foursquare.com/v3/places/nearby");
@@ -76,32 +53,36 @@ app.get("/api/venues", async (req, res) => {
     if (query) url.searchParams.append("query", query);
     if (limit) url.searchParams.append("limit", limit);
 
+    console.log("🔍 Fetching from Foursquare:", url.toString());
+
     const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: token,
-        Accept: "application/json",
-      },
+      headers: { Authorization: token, Accept: "application/json" },
     });
 
-    if (!response.ok) {
-      throw new Error(`Foursquare API error: ${response.status}`);
+    const text = await response.text(); // get raw text no matter what
+    console.log("📜 Raw response from Foursquare:", text);
+
+    // Try parse JSON
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { raw: text };
     }
 
-    const data = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({
+        status: "error",
+        message: "Foursquare API error",
+        details: data,
+      });
+    }
 
-    res.json({
-      status: "ok",
-      venues: data.results,
-    });
-  } catch (error) {
-    console.error("Error fetching Foursquare venues:", error.message);
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch venues",
-    });
+    res.json({ status: "ok", venues: data.results || data });
+  } catch (err) {
+    console.error("❌ Error in /api/venues:", err.message);
+    res.status(500).json({ status: "error", message: "Server error", details: err.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
