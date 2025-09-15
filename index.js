@@ -1,5 +1,6 @@
 const express = require("express");
 const Parser = require("rss-parser");
+const axios = require("axios");
 const app = express();
 
 const parser = new Parser();
@@ -46,7 +47,6 @@ app.get("/api/news", async (req, res) => {
       allItems = allItems.concat(items);
     }
 
-    // Sort by date (newest first)
     allItems.sort((a, b) => new Date(b.pub_date) - new Date(a.pub_date));
 
     res.json({
@@ -112,6 +112,49 @@ app.get("/api/events", (req, res) => {
     status: "ok",
     data: sampleEvents.slice(0, limit)
   });
+});
+
+// Venues endpoint (Foursquare proxy)
+app.get("/api/venues", async (req, res) => {
+  try {
+    const token = process.env.FOURSQUARE_API_KEY;
+    if (!token) {
+      return res.status(500).json({ status: "error", message: "No FOURSQUARE_API_KEY configured" });
+    }
+
+    const lat = req.query.lat || 54.0;
+    const lng = req.query.lng || -6.4;
+    const radius = req.query.radius_m || 1500;
+    const query = req.query.query || "pub";
+    const limit = parseInt(req.query.limit) || 10;
+
+    const url = `https://api.foursquare.com/v3/places/search?ll=${lat},${lng}&radius=${radius}&query=${encodeURIComponent(query)}&limit=${limit}`;
+
+    const response = await axios.get(url, {
+      headers: { Authorization: token }
+    });
+
+    const venues = (response.data.results || []).map(v => ({
+      id: `fsq_${v.fsq_id}`,
+      name: v.name,
+      category: v.categories?.[0]?.name || null,
+      lat: v.geocodes?.main?.latitude || null,
+      lng: v.geocodes?.main?.longitude || null,
+      address: v.location?.formatted_address || null,
+      distance_m: v.distance || null,
+      rating: v.rating || null,
+      price: v.price || null,
+      website: v.website || null
+    }));
+
+    res.json({
+      status: "ok",
+      data: venues
+    });
+  } catch (error) {
+    console.error("Error fetching Foursquare venues:", error.response?.data || error.message);
+    res.status(500).json({ status: "error", message: "Failed to fetch venues" });
+  }
 });
 
 // Start server
