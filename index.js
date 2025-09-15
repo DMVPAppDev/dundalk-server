@@ -70,15 +70,15 @@ app.get("/api/events", async (req, res) => {
     const lat = req.query.lat || 53.9999772; // Dundalk center
     const lng = req.query.lng || -6.4037354;
     const radius = req.query.radius_km || 10;
-    const limit = req.query.limit || 10;
+    const limit = parseInt(req.query.limit) || 10;
 
-    const url = `https://www.eventbriteapi.com/v3/events/search/?location.latitude=${lat}&location.longitude=${lng}&location.within=${radius}km&expand=venue&expand=logo&page_size=${limit}`;
+    const url = `https://www.eventbriteapi.com/v3/events/search/?location.latitude=${lat}&location.longitude=${lng}&location.within=${radius}km&expand=venue,logo&page=1`;
 
     const response = await axios.get(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    const events = response.data.events.map(ev => ({
+    const events = (response.data.events || []).map(ev => ({
       id: `eventbrite_${ev.id}`,
       title: ev.name?.text || "Untitled Event",
       description: ev.description?.text || "",
@@ -95,7 +95,7 @@ app.get("/api/events", async (req, res) => {
 
     res.json({
       status: "ok",
-      data: events
+      data: events.slice(0, limit) // enforce limit on our side
     });
   } catch (error) {
     console.error("Error fetching Eventbrite events:", error.response?.data || error.message);
