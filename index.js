@@ -1,6 +1,6 @@
-import express from "express";
-import cors from "cors";
-import Parser from "rss-parser";
+require express from "express";
+require cors from "cors";
+require Parser from "rss-parser";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
