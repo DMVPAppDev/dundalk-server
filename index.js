@@ -1,76 +1,80 @@
 import express from "express";
-import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.get("/", (req, res) => {
-  res.send("Hello Dundalk — your Render server is running!");
-});
-
+// --- TEST ROUTE ---
 app.get("/api/test", (req, res) => {
-  res.json({ status: "ok", message: "API is working" });
+  res.json({
+    status: "ok",
+    message: "Dundalk server is running correctly ✅"
+  });
 });
 
-// Events fallback
+// --- STATIC VENUES (fallback) ---
+app.get("/api/venues", (req, res) => {
+  res.json({
+    status: "ok",
+    venues: [
+      {
+        id: "venue_1",
+        name: "The Spirit Store",
+        category: "Pub & Live Music",
+        address: "George's Quay, Dundalk",
+        phone: "+353 42 935 2697",
+        website: "https://spiritstore.ie",
+        coords: { lat: 54.0035, lng: -6.4041 }
+      },
+      {
+        id: "venue_2",
+        name: "Russells Saloon",
+        category: "Bar",
+        address: "Park Street, Dundalk",
+        phone: "+353 42 933 4432",
+        website: null,
+        coords: { lat: 54.0022, lng: -6.4045 }
+      },
+      {
+        id: "venue_3",
+        name: "Brubakers",
+        category: "Bar & Food",
+        address: "Park Street, Dundalk",
+        phone: "+353 42 933 3475",
+        website: null,
+        coords: { lat: 54.0026, lng: -6.4039 }
+      }
+    ]
+  });
+});
+
+// --- STATIC EVENTS (fallback) ---
 app.get("/api/events", (req, res) => {
   res.json({
     status: "ok",
     events: [
-      { id: "1", name: "Dundalk Farmers Market", date: "2025-09-20", location: "Market Square" },
-      { id: "2", name: "Irish Music Night", date: "2025-09-21", location: "The Spirit Store" },
-    ],
+      {
+        id: "event_1",
+        name: "Trad Session Night",
+        venue: "The Spirit Store",
+        date: "2025-09-20T20:00:00Z",
+        link: "https://spiritstore.ie",
+        description: "An evening of traditional Irish music by local artists."
+      },
+      {
+        id: "event_2",
+        name: "Comedy Club Dundalk",
+        venue: "Brubakers",
+        date: "2025-09-25T21:00:00Z",
+        link: null,
+        description: "Live stand-up comedy with guest performers."
+      }
+    ]
   });
 });
 
-// News fallback
-app.get("/api/news", (req, res) => {
-  res.json({
-    status: "ok",
-    news: [
-      { id: "1", headline: "Local school wins award", date: "2025-09-10" },
-      { id: "2", headline: "Town prepares for festival", date: "2025-09-12" },
-    ],
-  });
+// --- START SERVER ---
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
-
-// Venues using axios
-app.get("/api/venues", async (req, res) => {
-  try {
-    const { lat, lng, radius_m, query, limit } = req.query;
-    const token = process.env.FOURSQUARE_API_KEY;
-
-    if (!lat || !lng) {
-      return res.status(400).json({ status: "error", message: "lat and lng required" });
-    }
-
-    const url = new URL("https://api.foursquare.com/v3/places/search");
-    url.searchParams.append("ll", `${lat},${lng}`);
-    if (radius_m) url.searchParams.append("radius", radius_m);
-    if (query) url.searchParams.append("query", query);
-    if (limit) url.searchParams.append("limit", limit);
-
-
-    console.log("🔍 Fetching from Foursquare:", url.toString());
-
-    const response = await axios.get(url.toString(), {
-      headers: { Authorization: token, Accept: "application/json" },
-    });
-
-    console.log("✅ Received data from Foursquare");
-
-    res.json({ status: "ok", venues: response.data.results });
-  } catch (err) {
-    console.error("❌ Error fetching Foursquare venues:", err.message);
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch venues",
-      details: err.message,
-    });
-  }
-});
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
