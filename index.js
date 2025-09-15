@@ -1,16 +1,14 @@
-require express from "express";
-require cors from "cors";
-require Parser from "rss-parser";
-
+const express = require("express");
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
+// Root route - simple hello
+app.get("/", (req, res) => {
+  res.send("Hello Dundalk - your Render server is working!");
+});
 
-// --- 1) /api/test (minimal OK) ---
+// Test endpoint - returns JSON
 app.get("/api/test", (req, res) => {
-  return res.status(200).json({
+  res.json({
     status: "ok",
     data: {
       server: { ok: true }
@@ -18,11 +16,8 @@ app.get("/api/test", (req, res) => {
   });
 });
 
-// Temporary root so you see something at /
-app.get("/", (req, res) => {
-  res.type("text/plain").send("Dundalk server is running.");
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Use Render’s PORT, or 10000 if not provided
+const port = process.env.PORT || 10000;
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
