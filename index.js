@@ -1,5 +1,5 @@
 import express from "express";
-import fetch from "node-fetch";
+import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -37,7 +37,7 @@ app.get("/api/news", (req, res) => {
   });
 });
 
-// Venues (debug version)
+// Venues using axios
 app.get("/api/venues", async (req, res) => {
   try {
     const { lat, lng, radius_m, query, limit } = req.query;
@@ -55,33 +55,20 @@ app.get("/api/venues", async (req, res) => {
 
     console.log("🔍 Fetching from Foursquare:", url.toString());
 
-    const response = await fetch(url.toString(), {
+    const response = await axios.get(url.toString(), {
       headers: { Authorization: token, Accept: "application/json" },
     });
 
-    const text = await response.text(); // get raw text no matter what
-    console.log("📜 Raw response from Foursquare:", text);
+    console.log("✅ Received data from Foursquare");
 
-    // Try parse JSON
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        status: "error",
-        message: "Foursquare API error",
-        details: data,
-      });
-    }
-
-    res.json({ status: "ok", venues: data.results || data });
+    res.json({ status: "ok", venues: response.data.results });
   } catch (err) {
-    console.error("❌ Error in /api/venues:", err.message);
-    res.status(500).json({ status: "error", message: "Server error", details: err.message });
+    console.error("❌ Error fetching Foursquare venues:", err.message);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch venues",
+      details: err.message,
+    });
   }
 });
 
